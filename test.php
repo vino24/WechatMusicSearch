@@ -1,3 +1,4 @@
+<?php
 include_once("wx_tpl.php");
 include_once("APIForWechat.php");
 $postStr = $GLOBALS["HTTP_RAW_POST_DATA"];
