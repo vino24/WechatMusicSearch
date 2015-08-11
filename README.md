@@ -4,6 +4,10 @@ A music search module of Wechat using NeteaseMusic private API
 借助于网易云音乐API开发的微信音乐搜索模块,支持歌名、歌手等各种搜索方式;
 同时支持批量获取歌曲详细信息。
 
+### 申明：
+
+代码仅供学习交流，请尊重音乐版权，勿做其他用途，所有音乐版权归网易云音乐及音乐人所有！
+
 ### 说明:
 
 > wx_tpl.php  微信消息模板
