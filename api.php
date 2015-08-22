@@ -74,12 +74,11 @@ function getResult($word, $type)
 
 
     } else {
-        $result = json_decode($result, true);
-        $artist = $result['result']['artists'][0];
+        $artist = $arr_artist['result']['artists'][0];
         $artist_id = $artist['id'];
         $artist_info = "http://music.163.com/#/artist?id=" . $artist_id;
-        print_r($artist_info);
+        $artist_pic=$artist['picUrl'];
+        print_r($artist_info."<br>".$artist_pic);
     }
 }
-
-getResult("李志 天空之城", "100");
+getResult("李志", "100");
