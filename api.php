@@ -1,84 +1,98 @@
 <?php
-header("Content-Type:text/html; charset=utf-8");
-
-function music_search($word, $type)
+header("Content-type:application/json;charset=utf-8");
+function curl_get($url)
 {
-    $url = "http://music.163.com/api/search/pc";
-    $post_data = array(
-        's' => $word,
-        'offset' => '0',
-        'limit' => '20',
-        'type' => $type,
-    );
-    $referrer = "http://music.163.com/";
-    $URL_Info = parse_url($url);    //  解析URL   Array ( [scheme] => http [host] => music.163.com [path] => /api/search/pc )
-    $values = array();
-    $result = '';
-    $request = '';
-    foreach ($post_data as $key => $value) {
-        $values[] = "$key=" . urlencode($value);
-    }
-    //  print_r($post_data);
-    $data_string = implode("&", $values);    // 将一个一维数组的值转化为字符串
-    //  print_r($data_string);
-    if (!isset($URL_Info["port"])) {
-        $URL_Info["port"] = 80;
-    }
-    $request .= "POST " . $URL_Info["path"] . " HTTP/1.1\n";
-    $request .= "Host: " . $URL_Info["host"] . "\n";
-    $request .= "Referer: $referrer\n";
-    $request .= "Content-type: application/x-www-form-urlencoded\n";
-    $request .= "Content-length: " . strlen($data_string) . "\n";
-    $request .= "Connection: close\n";
-    $request .= "Cookie: " . "appver=1.5.0.75771;\n";
-    $request .= "\n";
-    $request .= $data_string . "\n";
-    $fp = fsockopen($URL_Info["host"], $URL_Info["port"]);  //  fsockopen — 打开一个网络连接或者一个Unix套接字连接,fsockopen()将返回一个文件句柄，之后可以被其他文件类函数调
-    fputs($fp, $request);
-    $i = 1;
-    while (!feof($fp)) {    //   测试文件指针是否到了文件结束的位置
-        if ($i >= 15) {
-            $result .= fgets($fp);  //  从文件指针中读取一行
-        } else {
-            fgets($fp);
-            $i++;
-        }
-    }
-    fclose($fp);
-    return $result;
+    $refer = "http://music.163.com/";
+    $header[] = "Cookie: " . "appver=1.5.0.75771;";
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_BINARYTRANSFER, true);
+    curl_setopt($ch, CURLOPT_REFERER, $refer);
+    $output = curl_exec($ch);
+    curl_close($ch);
+    return $output;
 }
 
-function getResult($word, $type)
+function music_search($s,$type=1)
 {
-    $result = music_search($word, "100");
-    $arr_artist = json_decode($result, true); // true转换为数组，省略转换为对象
-    $artist_count = $arr_artist['result']['artistCount'];
+    $type||$type=1;
+    $url= "http://music.163.com/api/search/get/web?csrf_token=";
+    $curl = curl_init();
+    $post_data = 'hlpretag=&hlposttag=&s='. $s . '&type='.$type.'&offset=0&total=true&limit=1';
+    curl_setopt($curl, CURLOPT_URL,$url);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER,1);
 
-    if ($artist_count == 0) {
-        $result = music_search($word, "1");
-        $result = json_decode($result, true);
-        $result = $result['result'];
+    $header =array(
+        'Host: music.163.com',
+        'Origin: http://music.163.com',
+        'User-Agent: Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.90 Safari/537.36',
+        'Content-Type: application/x-www-form-urlencoded',
+        'Referer: http://music.163.com/search/',
+    );
+
+    curl_setopt($curl, CURLOPT_HTTPHEADER, $header);
+
+    curl_setopt($curl, CURLOPT_POST, 1);
+    curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data);
+    $src = curl_exec($curl);
+    curl_close($curl);
+    return $src;
+}
+
+function get_music_info($music_id)
+{
+    $url = "http://music.163.com/api/song/detail/?id=" . $music_id . "&ids=%5B" . $music_id . "%5D";
+    return curl_get($url);
+}
+function get_artist_info($artist_id)
+{
+    $url = "http://music.163.com/api/artist/" . $artist_id;
+    return curl_get($url);
+}
+function getResult($word)
+{
+    $is_Song = false;
+    $isEnglish = preg_match("/^[a-zA-Z\s]+$/",$word);
+    $arr = preg_split("/[\s,]+/", $word);
+    $result = json_decode(music_search($word), true); // true转换为数组，省略转换为对象
+    if(!$isEnglish) {
+        if(count($arr) == 1) {
+        $is_Song = $result['result']['songs'][0]['name'] == $word;
+    } else {
+        foreach ($arr as $key => $keyword) {
+            $result = json_decode(music_search($keyword) ,true);
+            if($result['result']['songs'][0]['name'] == $keyword) {
+                $is_Song = true;
+                $result = json_decode(music_search($arr[$key]) , true);
+                break;
+            }
+        }
+    }
+    } else {
+        $is_Song = stristr($word,$result['result']['songs'][0]['name']);
+    }
+    if ($is_Song) {
+        $result =$result['result'];
         $song = $result['songs'][0];
         $music_name = $song['name'];     //  歌名
-        $music_url = $song['mp3Url'];   //  mp3外链
-        $music_url = substr($music_url, 24);       //去除服务器前缀地址http://m1.music.126.net/
-        $picUrl = $song['album']['picUrl'];     //  歌曲封面链接
-        $album_name = $song['album']['name'];       //  专辑名称
-        //判断是否为p3服务器，若为p3服务器切换为p4服务器
-        $p3 = substr($picUrl, 8, 1);
-        if ($p3 == '3') {
-            $picUrl = str_replace("p3", "p4", $picUrl);
-        }
         $artist_name = $song['artists'][0]['name'];  //  歌手
-        print_r($music_name . ' ' . $artist_name . ' ' . $album_name . '<br>' . $music_url . '<br>' . $picUrl);
-
-
-    } else {
-        $artist = $arr_artist['result']['artists'][0];
+        $music_id = $song['id'];
+        $result = json_decode(get_music_info($music_id), true);
+        $music_url = $result['songs'][0]['mp3Url'];
+        $info=array($music_name,$artist_name,$music_url);   //  @todo 此处必须使用array()函数创建数组，直接赋值有问题
+        return $info;
+    }
+     else {
+        $result = json_decode(music_search($word, 100), true);
+        $artist = $result['result']['artists'][0];
         $artist_id = $artist['id'];
         $artist_info = "http://music.163.com/#/artist?id=" . $artist_id;
+        $artist_name=$artist['name'];
         $artist_pic=$artist['picUrl'];
-        print_r($artist_info."<br>".$artist_pic);
+        $info=array($artist_name,$artist_info,$artist_pic,$artist_id);
+        return $info;
     }
 }
-getResult("李志", "100");
+print_r(getResult("heal the world"));
