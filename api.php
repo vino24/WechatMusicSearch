@@ -53,14 +53,15 @@ function get_artist_info($artist_id)
 }
 function getResult($word)
 {
-    $is_Song = false;
-    $isEnglish = preg_match("/^[a-zA-Z\s]+$/",$word);
+    $is_Song = false;   // 搜索关键词是否为歌曲
+    $isEnglish = preg_match("/^[a-zA-Z\s]+$/",$word);   // 是否为英文歌/歌手
     $arr = preg_split("/[\s,]+/", $word);
-    $result = json_decode(music_search($word), true); // true转换为数组，省略转换为对象
+    
+    $result = json_decode(music_search($word), true); // 默认按歌曲先搜索一次（true转换为数组）
     if(!$isEnglish) {
-        if(count($arr) == 1) {
-        $is_Song = $result['result']['songs'][0]['name'] == $word;
-    } else {
+        if(count($arr) == 1) { // 非英文切只有一个搜索关键词
+        $is_Song = $result['result']['songs'][0]['name'] == $word; // 如果返回的歌曲名与搜索关键词相同即表示关键词为歌曲
+        } else {    // 非英文且多个关键词
         foreach ($arr as $key => $keyword) {
             $result = json_decode(music_search($keyword) ,true);
             if($result['result']['songs'][0]['name'] == $keyword) {
@@ -70,7 +71,7 @@ function getResult($word)
             }
         }
     }
-    } else {
+    } else {    //  全英文
         $is_Song = stristr($word,$result['result']['songs'][0]['name']);
     }
     if ($is_Song) {
@@ -95,4 +96,4 @@ function getResult($word)
         return $info;
     }
 }
-print_r(getResult("heal the world"));
+//  print_r(getResult("heal the world"));
