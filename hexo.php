@@ -61,3 +61,7 @@ function batch_get($id, $type)
      $song_list .= "]";
      return $song_list;
 }
+// example
+// $id = $_GET['id'];
+// $result = batch_get($id);
+// print_r($result);
