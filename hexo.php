@@ -35,10 +35,15 @@ function get_album_info($album_id)
     $url = "http://music.163.com/api/album/" . $album_id;
     return curl_get($url);
 }
-function get_album_detail($album_id)
-{
+function batch_get($id, $type)
+{   
+    if($type) {
     $result = json_decode(get_album_info($album_id), true);
     $result = $result["album"]["songs"];
+    } else {
+     $result = json_decode(get_playlist_info($playlist_id),true);
+     $result = $result['result']['tracks'];
+    } 
     $song_list = "[";
     foreach ($result as $key => $song) {
         $result = json_decode(get_music_info($song['id']), true);
@@ -52,26 +57,6 @@ function get_album_detail($album_id)
         $info .= "title:'" .$music_name . "',author:'" . $artist_name . "',url:'" .$music_url . "',pic:'" . $music_pic . "'},";
         $song_list .= $info;
     }
-     $song_list = rtrim($song_list,",");
-     $song_list .= "]";
-     return $song_list;
-}
-// get_album_detail("34527676");
-function get_playlist_detail($playlist_id) {
-     $result = json_decode(get_playlist_info($playlist_id),true);
-     $result = $result['result']['tracks'];
-     $song_list = "[";
-     foreach ($result as $key => $song) {
-        $result = json_decode(get_music_info($song['id']), true);
-        $result = $result['songs'][0];
-        $info = "{";
-        $music_name = $result['name'];
-        $artist_name = $result['artists'][0]['name'];
-        $music_url = $result['mp3Url'];
-        $music_pic = $result['album']['picUrl'];
-        $info .= "title:'" .$music_name . "',author:'" . $artist_name . "',url:'" .$music_url . "',pic:'" . $music_pic . "'},";
-        $song_list .= $info;
-     }
      $song_list = rtrim($song_list,",");
      $song_list .= "]";
      return $song_list;
